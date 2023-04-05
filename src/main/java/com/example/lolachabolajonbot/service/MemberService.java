@@ -8,8 +8,10 @@ import com.example.lolachabolajonbot.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -22,27 +24,39 @@ public class MemberService {
         return repository.findByChatId(chatId).orElseThrow(() -> new RuntimeException("user not found"));
     }
 
-    public void addMember(long chatId, int groupId, String fullName, String photoUrl, LocalDateTime birthDate) {
-        UserEntity byId = getByChatId(chatId);
-        GroupMemberEntity build = GroupMemberEntity.builder()
-                .addedDate(LocalDateTime.now())
-                .birthDate(birthDate)
-                .photoUrl(photoUrl)
-                .fullName(fullName)
-                .build();
-        List<GroupEntity> groupList = byId.getGroupList();
-        for (GroupEntity group : groupList) {
-            if (group.getId() == groupId) {
-                List<GroupMemberEntity> members = group.getMembers();
-                if (photoUrl != null)
-                    build.setPhotoUrl(group.getDefaultPhotoUrl());
-                members.add(build);
-                group.setMembers(members);
-                break;
+    public void addMember(long chatId, long groupId, String fullName, String photoUrl, LocalDate birthDate) {
+        // UserEntity byId = getByChatId(chatId);
+        Optional<GroupEntity> byChatId = groupRepository.findByChatId(groupId);
+        if (byChatId.isPresent()) {
+            GroupMemberEntity build = GroupMemberEntity.builder()
+                    .addedDate(LocalDate.now())
+                    .birthDate(birthDate)
+                    .photoUrl(photoUrl)
+                    .fullName(fullName)
+                    .build();
+            GroupEntity groupEntity = byChatId.get();
+            List<GroupMemberEntity> members = groupEntity.getMembers();
+            if (members == null) {
+                members = List.of(build);
             }
+            members.add(build);
+            groupEntity.setMembers(members);
+            groupRepository.save(groupEntity);
         }
-        byId.setGroupList(groupList);
-        repository.save(byId);
+
+//        List<GroupEntity> groupList = byId.getGroupList();
+//        for (GroupEntity group : groupList) {
+//            if (group.getId() == groupId) {
+//                List<GroupMemberEntity> members = group.getMembers();
+//                if (photoUrl != null)
+//                    build.setPhotoUrl(group.getDefaultPhotoUrl());
+//                members.add(build);
+//                group.setMembers(members);
+//                break;
+//            }
+//        }
+//        byId.setGroupList(groupList);
+//        repository.save(byId);
     }
 
     public void deleteMember(long chatId, GroupMemberEntity member, int groupId) {

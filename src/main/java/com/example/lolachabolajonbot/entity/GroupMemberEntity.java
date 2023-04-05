@@ -5,7 +5,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -18,7 +18,7 @@ public class GroupMemberEntity {
     @GeneratedValue
     private int id;
     private String fullName;
-    private LocalDateTime birthDate;
+    private LocalDate birthDate;
     private String photoUrl;
-    private LocalDateTime addedDate;
+    private LocalDate addedDate;
 }

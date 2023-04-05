@@ -16,6 +16,7 @@ import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaAnimation;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.File;
@@ -44,7 +45,7 @@ public class TelegramBotService {
 
     }
 
-    public SendAnimation sendAnimation(long chatId, String caption, InputFile animation, InlineKeyboardMarkup inlineKeyboardMarkup) {
+    public SendAnimation sendAnimation(long chatId, String caption, InputFile animation, ReplyKeyboard inlineKeyboardMarkup) {
         return SendAnimation.builder()
                 .chatId(chatId)
                 .caption(caption)

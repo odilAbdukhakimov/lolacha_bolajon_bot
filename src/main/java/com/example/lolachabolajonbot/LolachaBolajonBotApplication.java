@@ -8,7 +8,5 @@ public class LolachaBolajonBotApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(LolachaBolajonBotApplication.class, args);
-
     }
-
 }

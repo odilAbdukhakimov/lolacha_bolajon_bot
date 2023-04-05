@@ -19,6 +19,9 @@ public class UserService {
     public UserEntity getByChatId(long chatId) {
         return userRepository.findByChatId(chatId).orElseThrow(() -> new RuntimeException("user not found"));
     }
+    public GroupEntity getByChatIdGroup(long chatId){
+        return groupRepository.findByChatId(chatId).orElseThrow(() -> new RuntimeException("group not found"));
+    }
 
     public void createUser(long chatId, String fullName) {
         UserEntity userEntity = userRepository.findByChatId(chatId).orElse(null);
