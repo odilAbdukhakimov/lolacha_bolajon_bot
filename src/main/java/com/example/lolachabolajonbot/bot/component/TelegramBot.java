@@ -265,7 +265,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     @SneakyThrows
-    @Scheduled(cron = "0 30 6 * * *", zone="Asia/Tashkent")
+    @Scheduled(cron = "0 1 0 * * *", zone="Asia/Tashkent")
     public void sendMessageBirth() {
         for (GroupMemberEntity member : memberService.getByDate()) {
             SendMediaBotMethod<Message> messageSendMediaBotMethod = tgBotService.sendMessageGroup(member.getGroupEntity().getChatId(), member.getPhotoUrl(),
