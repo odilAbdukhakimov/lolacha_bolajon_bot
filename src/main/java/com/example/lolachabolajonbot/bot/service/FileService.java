@@ -1,6 +1,5 @@
 package com.example.lolachabolajonbot.bot.service;
 
-import com.example.lolachabolajonbot.bot.config.BotConfig;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
 import org.springframework.stereotype.Service;
@@ -10,10 +9,7 @@ import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaAnimation;
 
 import java.io.File;
-import java.io.InputStream;
 import java.net.URL;
-
-import static org.springframework.util.ResourceUtils.getFile;
 
 @Service
 @RequiredArgsConstructor

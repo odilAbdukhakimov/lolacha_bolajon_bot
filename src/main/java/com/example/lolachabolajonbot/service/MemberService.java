@@ -1,20 +1,14 @@
 package com.example.lolachabolajonbot.service;
 
-import com.example.lolachabolajonbot.entity.GroupEntity;
 import com.example.lolachabolajonbot.entity.GroupMemberEntity;
-import com.example.lolachabolajonbot.entity.UserEntity;
 import com.example.lolachabolajonbot.repository.GroupRepository;
 import com.example.lolachabolajonbot.repository.MemberRepository;
-import com.example.lolachabolajonbot.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 
 @Service
