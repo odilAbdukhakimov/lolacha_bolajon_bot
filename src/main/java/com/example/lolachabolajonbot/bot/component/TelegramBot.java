@@ -7,20 +7,24 @@ import com.example.lolachabolajonbot.bot.service.FileService;
 import com.example.lolachabolajonbot.bot.service.ReplyKeyBoardService;
 import com.example.lolachabolajonbot.bot.service.TelegramBotService;
 import com.example.lolachabolajonbot.entity.GroupEntity;
+import com.example.lolachabolajonbot.entity.GroupMemberEntity;
+import com.example.lolachabolajonbot.entity.HolidayEntity;
+import com.example.lolachabolajonbot.service.HolidayService;
 import com.example.lolachabolajonbot.service.MemberService;
 import com.example.lolachabolajonbot.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.GetFile;
-import org.telegram.telegrambots.meta.api.methods.send.SendAnimation;
+import org.telegram.telegrambots.meta.api.methods.send.*;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
 import org.telegram.telegrambots.meta.api.objects.*;
 import org.telegram.telegrambots.meta.api.objects.games.Animation;
 
+import java.io.FileNotFoundException;
 import java.net.URL;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Component
@@ -31,12 +35,14 @@ public class TelegramBot extends TelegramLongPollingBot {
     private static boolean isMember;
     private static String fileUrl;
     private static String memberName;
+    String dateBirth;
     private final ReplyKeyBoardService inlineKeyboard;
     private final FileService fileService;
     private final BotConfig config;
     private final UserService userService;
     private final MemberService memberService;
     private final TelegramBotService tgBotService;
+    private final HolidayService holidayService;
 
     @SneakyThrows
     @Override
@@ -51,11 +57,11 @@ public class TelegramBot extends TelegramLongPollingBot {
                     userService.createUser(chatId, message.getChat().getFirstName() + " "
                             + message.getChat().getLastName());
                     SendAnimation send = tgBotService.sendAnimation(chatId, DefaultMessage.HI,
-                            fileService.getFile(DefaultConstants.SHARE_GROUP_ANIMATION_URL), inlineKeyboard.userFrontMarkup());
+                            fileService.getFile(DefaultConstants.SHARE_GROUP_ANIMATION_URL), inlineKeyboard.inviteGroupMarkup());
                     toExecute(send);
                 } else if (text.equals("/home")) {
-                    SendAnimation send = tgBotService.sendAnimation(chatId, DefaultMessage.HI,
-                            fileService.getFile(DefaultConstants.SHARE_GROUP_ANIMATION_URL), inlineKeyboard.userFrontMarkup());
+                    SendAnimation send = tgBotService.sendAnimation(chatId, DefaultMessage.HOME,
+                            fileService.getFile(DefaultConstants.HOME_URL), inlineKeyboard.userFrontMarkup());
                     groupId = null;
                     fileUrl = null;
                     isSendFile = false;
@@ -66,13 +72,17 @@ public class TelegramBot extends TelegramLongPollingBot {
                     toExecute(sendAnimation);
 
                 } else if (text.equals("Tug'ilgan kunini kiritish")) {
-                    InputFile file = fileService.getFile(DefaultConstants.SHARE_GROUP_ANIMATION_URL);
-                    SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.CHOOSE_OWN_GROUP, file, inlineKeyboard.groupList(chatId));
+                    InputFile file = fileService.getFile(DefaultConstants.SEND_PHOTO_URL);
+                    SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.CHOOSE_OWN_GROUP, file, inlineKeyboard.groupList(chatId, false));
                     toExecute(sendAnimation);
                 } else if (text.equals("Tabriklanuvchilar ro'yxati")) {
-                    // members delete
+                    InputFile file = fileService.getFile(DefaultConstants.DELETE_MEMBER_URL);
+                    SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.CHOOSE_OWN_GROUP, file, inlineKeyboard.groupList(chatId, true));
+                    toExecute(sendAnimation);
                 } else if (text.equals("Biz haqimizda")) {
-                    // about us text
+                    InputFile file = fileService.getFile(DefaultConstants.HOME_URL);
+                    SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.ABOUT_US, file, null);
+                    toExecute(sendAnimation);
                 } else if (text.length() > 14 && isSendFile) {
                     userService.addDefaultValues(groupId, text, fileUrl);
                     groupId = null;
@@ -80,33 +90,20 @@ public class TelegramBot extends TelegramLongPollingBot {
                     isSendFile = false;
                     SendAnimation sendMessage = tgBotService.sendAnimation(chatId, DefaultMessage.SUCCESS_SAVE_VALUES_TO_GROUP,
                             fileService.getFile(DefaultConstants.SUCCES_ANIMATION_URL), null);
-                    SendAnimation send = tgBotService.sendAnimation(chatId, DefaultMessage.HI,
-                            fileService.getFile(DefaultConstants.SHARE_GROUP_ANIMATION_URL), inlineKeyboard.userFrontMarkup());
+                    SendAnimation send = tgBotService.sendAnimation(chatId, DefaultMessage.HOME,
+                            fileService.getFile(DefaultConstants.HOME_URL), inlineKeyboard.userFrontMarkup());
                     toExecute(sendMessage);
                     toExecute(send);
                 } else if (text.toLowerCase().startsWith("ism")) {
                     String[] split = text.split(":");
                     memberName = split[1];
                     SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.SEND_DATE,
-                            fileService.getFile(DefaultConstants.SHARE_GROUP_ANIMATION_URL), null);
+                            fileService.getFile(DefaultConstants.ENTER_DATA_URL), inlineKeyboard.dateButtons(1950, 2023, 5, "year"));
                     toExecute(sendAnimation);
-                } else if (text.toLowerCase().startsWith("kun")) {
-                    SendAnimation send = null;
-                    if (memberName == null) {
-                        send = tgBotService.sendAnimation(chatId, DefaultMessage.NOT_NAME,
-                                fileService.getFile(DefaultConstants.SHARE_GROUP_ANIMATION_URL), null);
-                    } else {
-                        String[] split = text.split(":");
-                        String date = split[1];
-                        LocalDate dateTime = LocalDate.parse(date, DateTimeFormatter.ofPattern("dd-MM-yyyy"));
-                        memberService.addMember(chatId,groupId,memberName,fileUrl,dateTime);
-                        memberName = null;
-                        send = tgBotService.sendAnimation(chatId, DefaultMessage.SUCCESS_SAVE_VALUES_TO_GROUP,
-                                fileService.getFile(DefaultConstants.SHARE_GROUP_ANIMATION_URL), null);
-                    }
-                    toExecute(send);
                 } else {
-                    //default message
+                    InputFile inputFile = fileService.getFile(DefaultConstants.ERROR_ANIMATION_URL);
+                    SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.NOT_FOUND_COMMAND, inputFile, null);
+                    toExecute(sendAnimation);
                 }
 
             } else if (message.hasPhoto() && !isSendFile) {
@@ -114,9 +111,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 PhotoSize photoSize = photo.get(photo.size() - 1);
                 fileUrl = saveFile(photoSize.getFileId());
                 isSendFile = true;
-                SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.DEFAULT_SEND_SALUTATION, fileService.getFile("disc/share_group.gif"), null);
+                SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.DEFAULT_SEND_SALUTATION, fileService.getFile(DefaultConstants.SEND_TEXT), null);
                 if (isMember) {
-                    sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.SEND_NAME, fileService.getFile("disc/share_group.gif"), null);
+                    sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.SEND_NAME, fileService.getFile(DefaultConstants.ENTER_DATA_URL), null);
                     isMember = false;
                 }
                 toExecute(sendAnimation);
@@ -124,9 +121,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 Video video = update.getMessage().getVideo();
                 fileUrl = saveFile(video.getFileId());
                 isSendFile = true;
-                SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.DEFAULT_SEND_SALUTATION, fileService.getFile("disc/share_group.gif"), null);
+                SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.DEFAULT_SEND_SALUTATION, fileService.getFile(DefaultConstants.SEND_TEXT), null);
                 if (isMember) {
-                    sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.SEND_NAME, fileService.getFile("disc/share_group.gif"), null);
+                    sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.SEND_NAME, fileService.getFile(DefaultConstants.ENTER_DATA_URL), null);
                     isMember = false;
                 }
                 toExecute(sendAnimation);
@@ -134,9 +131,9 @@ public class TelegramBot extends TelegramLongPollingBot {
                 Animation animation = update.getMessage().getAnimation();
                 fileUrl = saveFile(animation.getFileId());
                 isSendFile = true;
-                SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.DEFAULT_SEND_SALUTATION, fileService.getFile("disc/share_group.gif"), null);
+                SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.DEFAULT_SEND_SALUTATION, fileService.getFile(DefaultConstants.SEND_TEXT), null);
                 if (isMember) {
-                    sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.SEND_NAME, fileService.getFile("disc/share_group.gif"), null);
+                    sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.SEND_NAME, fileService.getFile(DefaultConstants.ENTER_DATA_URL), null);
                     isMember = false;
                 }
                 toExecute(sendAnimation);
@@ -152,7 +149,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             if (groupId == null) {
                 userService.addGroup(userChatId, groupChatId, groupName);
                 groupId = groupChatId;
-                SendAnimation sendAnimation = tgBotService.sendAnimation(userChatId, DefaultMessage.DEFAULT_SEND_PHOTO, fileService.getFile("disc/share_group.gif"), null);
+                SendAnimation sendAnimation = tgBotService.sendAnimation(userChatId, DefaultMessage.DEFAULT_SEND_PHOTO, fileService.getFile(DefaultConstants.SEND_FILE_URL), null);
                 toExecute(sendAnimation);
             }
 
@@ -161,22 +158,66 @@ public class TelegramBot extends TelegramLongPollingBot {
         } else if (update.hasCallbackQuery()) {
             String data = update.getCallbackQuery().getData();
             Message message = update.getCallbackQuery().getMessage();
+            Integer messageId = message.getMessageId();
             Long chatId = message.getChatId();
             if (data.startsWith("add_group:")) {
                 String[] split = data.split(":");
                 groupId = Long.valueOf(split[1]);
                 isMember = true;
-                InputFile file = fileService.getFile(DefaultConstants.SHARE_GROUP_ANIMATION_URL);
+                InputFile file = fileService.getFile(DefaultConstants.SEND_PHOTO_URL);
                 SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.OWN_PHOTO, file, inlineKeyboard.skipMarkup());
                 toExecute(sendAnimation);
             } else if (data.equals("skip")) {
                 GroupEntity byChatIdGroup = userService.getByChatIdGroup(groupId);
                 fileUrl = byChatIdGroup.getDefaultPhotoUrl();
-                InputFile file = fileService.getFile(DefaultConstants.SHARE_GROUP_ANIMATION_URL);
+                InputFile file = fileService.getFile(DefaultConstants.ENTER_DATA_URL);
                 SendAnimation sendAnimation = tgBotService.sendAnimation(chatId, DefaultMessage.SEND_NAME, file, null);
                 toExecute(sendAnimation);
+            } else if (data.startsWith("show")) {
+                String[] split = data.split(":");
+                groupId = Long.valueOf(split[1]);
+                EditMessageReplyMarkup editMessageReplyMarkup = tgBotService.updateMessage(messageId, chatId, inlineKeyboard.memberList(String.valueOf(groupId)));
+                toExecute(editMessageReplyMarkup);
+            } else if (data.equals("//back")) {
+                EditMessageReplyMarkup editMessageReplyMarkup = tgBotService.updateMessage(messageId, chatId, inlineKeyboard.memberList(String.valueOf(groupId)));
+                toExecute(editMessageReplyMarkup);
+            } else if (data.equals("/back")) {
+                EditMessageReplyMarkup editMessageReplyMarkup = tgBotService.updateMessage(messageId, chatId, inlineKeyboard.groupList(chatId, true));
+                toExecute(editMessageReplyMarkup);
+            } else if (data.startsWith("memberId")) {
+                String[] split = data.split(":");
+                Integer memberId = Integer.valueOf(split[1]);
+                EditMessageReplyMarkup editMessageReplyMarkup = tgBotService.updateMessage(messageId, chatId, inlineKeyboard.deleteMember(memberId));
+                toExecute(editMessageReplyMarkup);
+            } else if (data.startsWith("del")) {
+                int memberId = Integer.parseInt(data.split(":")[1]);
+                memberService.deleteMember(memberId);
+                EditMessageReplyMarkup editMessageReplyMarkup = tgBotService.updateMessage(messageId, chatId, inlineKeyboard.memberList(String.valueOf(groupId)));
+                toExecute(editMessageReplyMarkup);
+            } else if (data.startsWith("year")) {
+                String year = data.split(":")[1] + "-";
+                dateBirth = year;
+                EditMessageReplyMarkup editMessageReplyMarkup = tgBotService.updateMessage(messageId, chatId, inlineKeyboard.monthButtons());
+                toExecute(editMessageReplyMarkup);
+            } else if (data.startsWith("month")) {
+                String month = data.split(":")[2] + "-";
+                dateBirth += month;
+                int endDateOfMonth = Integer.parseInt(data.split(":")[3]);
+                EditMessageReplyMarkup editMessageReplyMarkup = tgBotService.updateMessage(messageId, chatId, inlineKeyboard.dateButtons(1, endDateOfMonth, 7, "date"));
+                toExecute(editMessageReplyMarkup);
+            } else if (data.startsWith("date")) {
+                String day = data.split(":")[1];
+                dateBirth += day;
+                memberService.addMember(groupId, memberName, fileUrl, dateBirth);
+                memberName = null;
+                dateBirth = null;
+                SendAnimation send = tgBotService.sendAnimation(chatId, DefaultMessage.SUCCESS_SAVE_VALUES_TO_GROUP,
+                        fileService.getFile(DefaultConstants.SUCCES_ANIMATION_URL), null);
+                toExecute(send);
+                SendAnimation home = tgBotService.sendAnimation(chatId, DefaultMessage.HOME,
+                        fileService.getFile(DefaultConstants.HOME_URL), inlineKeyboard.userFrontMarkup());
+                toExecute(home);
             }
-
         }
 
 
@@ -205,11 +246,50 @@ public class TelegramBot extends TelegramLongPollingBot {
         return null;
     }
 
-    private void toExecute(SendAnimation message) {
+    private void toExecute(Object message) {
         try {
-            execute(message);
+            if (message instanceof SendMessage) {
+                execute((SendMessage) message);
+            } else if (message instanceof SendPhoto) {
+                execute((SendPhoto) message);
+            } else if (message instanceof SendVideo) {
+                execute((SendVideo) message);
+            } else if (message instanceof SendAnimation) {
+                execute((SendAnimation) message);
+            } else if (message instanceof EditMessageReplyMarkup) {
+                execute((EditMessageReplyMarkup) message);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @SneakyThrows
+    @Scheduled(cron = "0 30 6 * * *")
+    public void sendMessageBirth() {
+        for (GroupMemberEntity member : memberService.getByDate()) {
+            SendMediaBotMethod<Message> messageSendMediaBotMethod = tgBotService.sendMessageGroup(member.getGroupEntity().getChatId(), member.getPhotoUrl(),
+                    member.getFullName(), member.getGroupEntity().getDefaultMessage());
+            toExecute(messageSendMediaBotMethod);
+        }
+    }
+
+    @SneakyThrows
+    @Scheduled(cron = "0 0 9 * * *")
+    public void sendMessageHoliday() {
+        HolidayEntity holidayInfo = holidayService.getHolidayInfo();
+        List<Long> allGroupChatIdList = holidayService.getAllGroupChatIdList();
+        allGroupChatIdList.forEach((id) ->
+                {
+                    try {
+                        toExecute(tgBotService.sendMessageGroup(id, holidayInfo.getPhotoUrl(),
+                                holidayInfo.getName(), holidayInfo.getText()));
+                    } catch (FileNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+        );
+
     }
 }

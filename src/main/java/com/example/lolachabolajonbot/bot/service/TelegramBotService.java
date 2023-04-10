@@ -4,15 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ResourceUtils;
 import org.telegram.telegrambots.meta.api.methods.botapimethods.BotApiMethodSerializable;
-import org.telegram.telegrambots.meta.api.methods.send.SendAnimation;
-import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
-import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
-import org.telegram.telegrambots.meta.api.methods.send.SendVideo;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.DeleteMessage;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageCaption;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageMedia;
-import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.methods.send.*;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.*;
 import org.telegram.telegrambots.meta.api.objects.InputFile;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaAnimation;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
@@ -25,6 +20,7 @@ import java.io.FileNotFoundException;
 @Service
 @RequiredArgsConstructor
 public class TelegramBotService {
+    private final FileService fileService;
 
     public SendMessage sendTextMessage(long chatId, String text, InlineKeyboardMarkup inlineKeyboardMarkup) {
         return SendMessage.builder()
@@ -34,15 +30,32 @@ public class TelegramBotService {
                 .build();
     }
 
-    public void sendMessageGroup(long chatId, String photoUrl, String name, String defaultMessage) throws FileNotFoundException {
-        File file = ResourceUtils.getFile(photoUrl);
-        InputFile photo = new InputFile(file);
-        SendPhoto message = new SendPhoto();
-        SendVideo sendVideo = new SendVideo();
-        message.setPhoto(photo);
-        message.setChatId(chatId);
-        message.setCaption(String.format(defaultMessage, name));
-
+    public SendMediaBotMethod<Message> sendMessageGroup(long chatId, String photoUrl, String name, String defaultMessage) throws FileNotFoundException {
+        InputFile file = fileService.getFile(photoUrl);
+        String text = defaultMessage.replace("{}","<b>" + name + "</b>");
+        if (photoUrl.startsWith("photo")) {
+            return SendPhoto.builder()
+                    .chatId(chatId)
+                    .caption(text)
+                    .parseMode("html")
+                    .photo(file)
+                    .build();
+        } else if (photoUrl.startsWith("video")) {
+            return SendVideo.builder()
+                    .chatId(chatId)
+                    .caption(text)
+                    .parseMode("html")
+                    .video(file)
+                    .build();
+        } else if (photoUrl.startsWith("animation")) {
+            return SendAnimation.builder()
+                    .animation(file)
+                    .chatId(chatId)
+                    .parseMode("html")
+                    .caption(text)
+                    .build();
+        }
+        return null;
     }
 
     public SendAnimation sendAnimation(long chatId, String caption, InputFile animation, ReplyKeyboard inlineKeyboardMarkup) {
@@ -55,18 +68,17 @@ public class TelegramBotService {
                 .build();
     }
 
-    //    public EditMessageMedia updateMessage(long chatId, long messageId, InputMediaAnimation animation, InlineKeyboardMarkup inlineKeyboardMarkup) {
-//        EditMessageMedia media = new EditMessageMedia();
-//        media.setMessageId((int) messageId);
-//        media.setChatId(chatId);
-//        media.setMedia(animation);
-//        media.setReplyMarkup(inlineKeyboardMarkup);
-//
-//    }
     public DeleteMessage deleteMessage(Integer messageId, long chatId) {
         return DeleteMessage.builder()
                 .messageId(messageId)
                 .chatId(chatId)
+                .build();
+    }
+    public EditMessageReplyMarkup updateMessage(Integer messageId, long chatId,InlineKeyboardMarkup inlineKeyboardMarkup){
+        return EditMessageReplyMarkup.builder()
+                .chatId(chatId)
+                .messageId(messageId)
+                .replyMarkup(inlineKeyboardMarkup)
                 .build();
     }
 }

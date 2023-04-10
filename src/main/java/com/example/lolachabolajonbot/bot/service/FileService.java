@@ -10,6 +10,7 @@ import org.telegram.telegrambots.meta.api.objects.media.InputMedia;
 import org.telegram.telegrambots.meta.api.objects.media.InputMediaAnimation;
 
 import java.io.File;
+import java.io.InputStream;
 import java.net.URL;
 
 import static org.springframework.util.ResourceUtils.getFile;
@@ -30,6 +31,7 @@ public class FileService {
 
     public InputFile getFile(String fileName) {
         try {
+//            InputStream inputStream = getClass().getResourceAsStream(PATH_PATH + fileName);
             File file = ResourceUtils.getFile(PATH_PATH + fileName);
             return new InputFile(file);
         } catch (Exception e) {

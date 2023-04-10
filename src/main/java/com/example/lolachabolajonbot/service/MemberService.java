@@ -4,12 +4,15 @@ import com.example.lolachabolajonbot.entity.GroupEntity;
 import com.example.lolachabolajonbot.entity.GroupMemberEntity;
 import com.example.lolachabolajonbot.entity.UserEntity;
 import com.example.lolachabolajonbot.repository.GroupRepository;
+import com.example.lolachabolajonbot.repository.MemberRepository;
 import com.example.lolachabolajonbot.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,67 +20,40 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class MemberService {
-    private final UserRepository repository;
     private final GroupRepository groupRepository;
+    private final MemberRepository memberRepository;
 
-    public UserEntity getByChatId(long chatId) {
-        return repository.findByChatId(chatId).orElseThrow(() -> new RuntimeException("user not found"));
+    public void addMember(long groupId, String fullName, String photoUrl, String date) {
+        LocalDate dateTime = LocalDate.parse(date);
+        GroupMemberEntity build = GroupMemberEntity.builder()
+                .addedDate(LocalDate.now())
+                .birthDate(dateTime)
+                .photoUrl(photoUrl)
+                .fullName(fullName)
+                .groupEntity(groupRepository.findByChatId(groupId).orElse(null))
+                .build();
+        memberRepository.save(build);
     }
 
-    public void addMember(long chatId, long groupId, String fullName, String photoUrl, LocalDate birthDate) {
-        // UserEntity byId = getByChatId(chatId);
-        Optional<GroupEntity> byChatId = groupRepository.findByChatId(groupId);
-        if (byChatId.isPresent()) {
-            GroupMemberEntity build = GroupMemberEntity.builder()
-                    .addedDate(LocalDate.now())
-                    .birthDate(birthDate)
-                    .photoUrl(photoUrl)
-                    .fullName(fullName)
-                    .build();
-            GroupEntity groupEntity = byChatId.get();
-            List<GroupMemberEntity> members = groupEntity.getMembers();
-            if (members == null) {
-                members = List.of(build);
+    public void deleteMember(int memberId) {
+        GroupMemberEntity byId = getById(memberId);
+        memberRepository.delete(byId);
+    }
+
+    public GroupMemberEntity getById(int memberId) {
+        return memberRepository.findById(memberId).orElseThrow(() -> new RuntimeException("Member not found"));
+    }
+
+    public List<GroupMemberEntity> getByDate() {
+        List<GroupMemberEntity> all = memberRepository.findAll();
+        List<GroupMemberEntity> res = new ArrayList<>();
+        all.stream().parallel().forEach((member) ->
+        {
+            if (member.getBirthDate().toString().substring(4).equals(
+                    LocalDate.now().toString().substring(4))) {
+                res.add(member);
             }
-            members.add(build);
-            groupEntity.setMembers(members);
-            groupRepository.save(groupEntity);
-        }
-
-//        List<GroupEntity> groupList = byId.getGroupList();
-//        for (GroupEntity group : groupList) {
-//            if (group.getId() == groupId) {
-//                List<GroupMemberEntity> members = group.getMembers();
-//                if (photoUrl != null)
-//                    build.setPhotoUrl(group.getDefaultPhotoUrl());
-//                members.add(build);
-//                group.setMembers(members);
-//                break;
-//            }
-//        }
-//        byId.setGroupList(groupList);
-//        repository.save(byId);
-    }
-
-    public void deleteMember(long chatId, GroupMemberEntity member, int groupId) {
-        UserEntity byId = getByChatId(chatId);
-        for (GroupEntity groupEntity : byId.getGroupList()) {
-            if (groupId == groupEntity.getId()) {
-                List<GroupMemberEntity> members = groupEntity.getMembers();
-                members.remove(member);
-                groupEntity.setMembers(members);
-                break;
-            }
-        }
-        repository.save(byId);
-    }
-
-    public GroupMemberEntity getById(int groupId, int memberId) {
-        GroupEntity groupEntity = groupRepository.findById(groupId).orElseThrow(() -> new RuntimeException("Group not found"));
-        for (GroupMemberEntity member : groupEntity.getMembers()) {
-            if (member.getId() == memberId)
-                return member;
-        }
-        throw new RuntimeException("Member not found");
+        });
+        return res;
     }
 }

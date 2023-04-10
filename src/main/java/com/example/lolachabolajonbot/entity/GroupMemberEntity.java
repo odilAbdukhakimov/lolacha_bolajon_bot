@@ -1,8 +1,6 @@
 package com.example.lolachabolajonbot.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -21,4 +19,7 @@ public class GroupMemberEntity {
     private LocalDate birthDate;
     private String photoUrl;
     private LocalDate addedDate;
+    @ManyToOne
+    @JoinColumn(name = "group_id")
+    private GroupEntity groupEntity;
 }

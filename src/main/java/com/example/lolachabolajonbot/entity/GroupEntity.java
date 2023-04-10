@@ -18,8 +18,6 @@ public class GroupEntity {
     private String groupName;
     @Column(unique = true)
     private long chatId;
-    @OneToMany(cascade = CascadeType.ALL,fetch = FetchType.EAGER)
-    private List<GroupMemberEntity> members;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private UserEntity userEntity;

@@ -1,7 +1,10 @@
 package com.example.lolachabolajonbot.bot.service;
 
+import com.example.lolachabolajonbot.bot.component.message.DefaultConstants;
 import com.example.lolachabolajonbot.entity.GroupEntity;
+import com.example.lolachabolajonbot.entity.GroupMemberEntity;
 import com.example.lolachabolajonbot.entity.UserEntity;
+import com.example.lolachabolajonbot.repository.MemberRepository;
 import com.example.lolachabolajonbot.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -19,6 +22,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ReplyKeyBoardService {
     private final UserRepository userRepository;
+    private final MemberRepository memberRepository;
 
     public ReplyKeyboardMarkup userFrontMarkup() {
         ReplyKeyboardMarkup replyKeyboardMarkup = new ReplyKeyboardMarkup();
@@ -31,7 +35,11 @@ public class ReplyKeyBoardService {
         return replyKeyboardMarkup;
     }
 
-    public InlineKeyboardMarkup groupList(long chatId) {
+    public InlineKeyboardMarkup groupList(long chatId, boolean show) {
+        String typeGroup = "add_group:";
+        if (show) {
+            typeGroup = "show:";
+        }
         int count = 0;
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         Optional<UserEntity> byChatId = userRepository.findByChatId(chatId);
@@ -40,7 +48,6 @@ public class ReplyKeyBoardService {
         }
         ArrayList<InlineKeyboardButton> row = new ArrayList<>();
         List<List<InlineKeyboardButton>> lists = new ArrayList<>();
-        InlineKeyboardButton button = new InlineKeyboardButton();
         List<GroupEntity> groupList = byChatId.get().getGroupList();
         for (GroupEntity group : groupList) {
             if (count == 3) {
@@ -48,25 +55,13 @@ public class ReplyKeyBoardService {
                 row = new ArrayList<>();
                 count = 0;
             }
+            InlineKeyboardButton button = new InlineKeyboardButton();
             button.setText(group.getGroupName());
-            button.setCallbackData("add_group:" + group.getChatId());
+            button.setCallbackData(typeGroup + group.getChatId());
             row.add(button);
             count++;
         }
-        if (groupList.size() % 3 == 2) {
-            InlineKeyboardButton button1 = new InlineKeyboardButton();
-            InlineKeyboardButton button2 = new InlineKeyboardButton();
-            button1.setText(groupList.get(groupList.size() - 2).getGroupName());
-            button1.setCallbackData("add_group:" + groupList.get(groupList.size() - 2).getChatId());
-            button2.setText(groupList.get(groupList.size() - 1).getGroupName());
-            button2.setCallbackData("add_group:" + groupList.get(groupList.size() - 1).getChatId());
-            lists.add(List.of(button1, button2));
-        } else if (groupList.size() % 3 == 1) {
-            InlineKeyboardButton button3 = new InlineKeyboardButton();
-            button3.setText(groupList.get(groupList.size() - 1).getGroupName());
-            button3.setCallbackData("add_group:" + groupList.get(groupList.size() - 1).getChatId());
-            lists.add(List.of(button3));
-        }
+        lists.add(row);
         inlineKeyboardMarkup.setKeyboard(lists);
         return inlineKeyboardMarkup;
     }
@@ -80,13 +75,144 @@ public class ReplyKeyBoardService {
         inlineKeyboardMarkup.setKeyboard(List.of(row));
         return inlineKeyboardMarkup;
     }
-    public InlineKeyboardMarkup skipMarkup(){
+
+    public InlineKeyboardMarkup skipMarkup() {
         InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
         InlineKeyboardButton button1 = new InlineKeyboardButton();
         button1.setCallbackData("skip");
-        button1.setText("Rasm yubormayman");
+        button1.setText("Rasm yubormayman ⏭ ");
         List<InlineKeyboardButton> row = List.of(button1);
         inlineKeyboardMarkup.setKeyboard(List.of(row));
+        return inlineKeyboardMarkup;
+    }
+
+    public InlineKeyboardMarkup memberList(String groupChatId) {
+        List<GroupMemberEntity> memberList = memberRepository.getByGroupEntityChatId(Long.parseLong(groupChatId));
+        int count = 0;
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        ArrayList<InlineKeyboardButton> row = new ArrayList<>();
+        List<List<InlineKeyboardButton>> lists = new ArrayList<>();
+        for (GroupMemberEntity group : memberList) {
+            if (count == 3) {
+                lists.add(row);
+                row = new ArrayList<>();
+                count = 0;
+            }
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText(group.getFullName());
+            button.setCallbackData("memberId:" + group.getId());
+            row.add(button);
+            count++;
+        }
+        lists.add(row);
+        InlineKeyboardButton back = new InlineKeyboardButton();
+        back.setCallbackData("/back");
+        back.setText("ortga");
+        lists.add(List.of(back));
+        inlineKeyboardMarkup.setKeyboard(lists);
+        return inlineKeyboardMarkup;
+    }
+
+    public InlineKeyboardMarkup deleteMember(Integer memberId) {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        InlineKeyboardButton b1 = new InlineKeyboardButton();
+        b1.setText("o'chirish \uD83D\uDDD1 ");
+        b1.setCallbackData("del:" + memberId);
+        InlineKeyboardButton b2 = new InlineKeyboardButton();
+        b2.setText("ortga");
+        b2.setCallbackData("//back");
+        inlineKeyboardMarkup.setKeyboard(List.of(List.of(b1, b2)));
+        return inlineKeyboardMarkup;
+    }
+
+    public InlineKeyboardMarkup dateButtons(int startDate, int endDate, int rows, String data) {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        ArrayList<InlineKeyboardButton> row = new ArrayList<>();
+        List<List<InlineKeyboardButton>> lists = new ArrayList<>();
+        int count = 0;
+        for (int i = startDate; i <= endDate; i++) {
+            if (count == rows) {
+                lists.add(row);
+                row = new ArrayList<>();
+                count = 0;
+            }
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText(String.valueOf(i));
+            if (i < 10)
+                button.setCallbackData(data + ":0" + i);
+            else
+                button.setCallbackData(data + ":" + i);
+            row.add(button);
+            count++;
+        }
+        lists.add(row);
+        inlineKeyboardMarkup.setKeyboard(lists);
+        return inlineKeyboardMarkup;
+    }
+
+    public InlineKeyboardMarkup monthButtons() {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> lists = new ArrayList<>();
+        ArrayList<InlineKeyboardButton> row = new ArrayList<>();
+        InlineKeyboardButton button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.JANUARY.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.JANUARY);
+        row.add(button);
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.FEBRUARY.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.FEBRUARY);
+        row.add(button);
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.MARCH.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.MARCH);
+        row.add(button);
+        lists.add(row);
+        //---------------------------------------------------------------------------
+        row = new ArrayList<>();
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.APRIL.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.APRIL);
+        row.add(button);
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.MAY.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.MAY);
+        row.add(button);
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.JUNE.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.JUNE);
+        row.add(button);
+        lists.add(row);
+        //---------------------------------------------------------------------------
+        row = new ArrayList<>();
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.JULY.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.JULY);
+        row.add(button);
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.AUGUST.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.AUGUST);
+        row.add(button);
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.SEPTEMBER.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.SEPTEMBER);
+        row.add(button);
+        lists.add(row);
+        //---------------------------------------------------------------------------
+        row = new ArrayList<>();
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.OCTOBER.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.OCTOBER);
+        row.add(button);
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.NOVEMBER.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.NOVEMBER);
+        row.add(button);
+        button = new InlineKeyboardButton();
+        button.setText(DefaultConstants.DECEMBER.split(":")[0]);
+        button.setCallbackData("month:" + DefaultConstants.DECEMBER);
+        row.add(button);
+        lists.add(row);
+        inlineKeyboardMarkup.setKeyboard(lists);
         return inlineKeyboardMarkup;
     }
 }
